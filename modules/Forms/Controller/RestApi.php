@@ -1,14 +1,20 @@
 <?php
+
 namespace Forms\Controller;
 
-class RestApi extends \LimeExtra\Controller {
+use MongoLite\Cursor;
 
-    protected function before() {
+class RestApi extends \LimeExtra\Controller
+{
+
+    protected function before()
+    {
         $this->app->response->mime = 'json';
     }
-    
-    public function submit($formname) {
-        
+
+    public function submit($formname)
+    {
+
         // Security check
         if ($formhash = $this->param("__csrf", false)) {
 
@@ -78,7 +84,7 @@ class RestApi extends \LimeExtra\Controller {
             if (isset($frm['save_entry']) && $frm['save_entry']) {
 
                 $entry = ['data' => $formdata];
-                $this->module('forms')->save($formname, $entry);
+                $formdata = $this->module('forms')->save($formname, $entry);
             }
 
             return json_encode($formdata);
@@ -88,7 +94,7 @@ class RestApi extends \LimeExtra\Controller {
         }
     }
 
-    public function entries($name=null)
+    public function entries($name = null)
     {
         if (!$name) {
             return false;
@@ -102,11 +108,39 @@ class RestApi extends \LimeExtra\Controller {
 
         $options = [];
 
-        if ($filter   = $this->param('filter', null))  $options['filter'] = $filter;
+        if ($filter = $this->param('filter', null)) {
+            $options['filter'] = $filter;
+        }
 
-        $content = $this->module("forms")->find($name, $options);
+        if ($limit = $this->param('limit', null)) {
+            $options['limit'] = $limit;
+        }
 
-        return is_null($content) ? false : $content;
+        if ($skip = $this->param('skip', null)) {
+            $options['skip'] = $skip;
+        }
+
+        $results = $this->module("forms")->find($name, $options);
+
+        return is_null($results) ? false : [
+            'data' => $results,
+            'total' => $this->getCollectionTotal($name, $filter),
+        ];
+    }
+
+    private function getCollectionTotal($formName, $filter)
+    {
+        $forms = $this->module("forms")->form($formName);
+
+        if (!$forms) {
+            return false;
+        }
+
+        $form = $forms["_id"];
+
+        /** @var Cursor $cursor */
+        $cursor = $this->app->storage->getCollection("forms/{$form}")->find($filter);
+        return $cursor->count();
     }
 
 }
