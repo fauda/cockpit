@@ -107,12 +107,19 @@ class RestApi extends \LimeExtra\Controller
         }
 
         $options = [];
-
-        if ($filter = $this->param('filter', null)) {
+        $filter = [];
+        foreach ($_REQUEST as $param => $value) {
+            if (!in_array($param, ['limit', 'skip', 'token'])) {
+                $filter[str_replace('_', '.', $param)] = $value;
+            }
+        }
+        if (!empty($filter)) {
             $options['filter'] = $filter;
         }
 
-        if ($limit = $this->param('limit', null)) {
+        $limit = $this->param('limit', null);
+
+        if ($limit !== null) {
             $options['limit'] = $limit;
         }
 
@@ -120,11 +127,22 @@ class RestApi extends \LimeExtra\Controller
             $options['skip'] = $skip;
         }
 
+        $count = $this->getCollectionTotal($name, $filter);
+
+        // add count to headers
+        header('X-Total-Count: ' . $count);
+        header('Access-Control-Expose-Headers: X-Total-Count');
+
+        // if head request don't send any data
+        if ($_SERVER['REQUEST_METHOD'] === 'HEAD') {
+            return [];
+        }
+
         $results = $this->module("forms")->find($name, $options);
 
         return is_null($results) ? false : [
             'data' => $results,
-            'total' => $this->getCollectionTotal($name, $filter),
+            'total' => $count,
         ];
     }
 
