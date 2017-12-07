@@ -72,6 +72,9 @@
                     <th class="uk-text-small">@lang('Entry')</th>
                     <th width="100" class="uk-text-small">@lang('Created')</th>
                     <th width="20"></th>
+                    @if($form['name'] == 'blogcomment')
+                    <th width="20"></th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
@@ -88,6 +91,11 @@
                     <td>
                         <span class="uk-text-muted">{ App.Utils.dateformat( new Date( 1000 * entry._modified )) }</span>
                     </td>
+                    @if($form['name'] == 'blogcomment')
+                    <td>
+                        <a class="uk-text-danger" onclick="{ parent.approve }" title="@lang('Approve')"><i class="uk-icon-check-square-o"></i></a>
+                    </td>
+                    @endif
                     <td>
                         <a class="uk-text-danger" onclick="{ parent.remove }" title="@lang('Delete')"><i class="uk-icon-trash-o"></i></a>
                     </td>
@@ -138,6 +146,27 @@
                     App.ui.notify("Entry removed", "success");
 
                     $this.entries.splice(idx, 1);
+
+                    $this.update();
+
+                    $this.checkselected(true);
+                });
+
+            }.bind(this));
+        }
+
+        approve(e, entry, idx) {
+
+            entry = e.item.entry
+            idx   = e.item.idx;
+
+            entry.data['approved'] = 1;
+
+            App.ui.confirm("Are you sure?", function() {
+
+                App.callmodule('forms:update', [this.form.name, {'_id':entry._id}, entry]).then(function(data) {
+
+                    App.ui.notify("Comment approved", "success");
 
                     $this.update();
 
