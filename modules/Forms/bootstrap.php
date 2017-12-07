@@ -230,6 +230,17 @@ $this->module("forms")->extend([
         return $this->app->storage->remove("forms/{$form}", $criteria);
     },
 
+    'update' => function($form, $criteria, $data) {
+
+        $forms = $this->form($form);
+
+        if (!$forms) return false;
+
+        $form = $forms["_id"];
+
+        return $this->app->storage->update("forms/{$form}", $criteria, $data);
+    },
+
     'count' => function ($form, $criteria = []) {
 
         $forms = $this->form($form);
